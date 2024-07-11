@@ -6,7 +6,7 @@ import re
 class CoordenadasApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Conversor de Coordenadas UTM <-> Latitud/Longitud")
+        self.root.title("Conversor de Coordenadas")
         self.root.attributes('-topmost', True)  # Mantener ventana sobre las demás
 
         # Variables para almacenar entradas del usuario
@@ -16,19 +16,20 @@ class CoordenadasApp:
         self.latitude_var = tk.DoubleVar()
         self.longitude_var = tk.DoubleVar()
         self.north_or_south_var = tk.StringVar(value="Norte")  # Valor inicial
+        self.zone_var = tk.IntVar()
         self.lat_dms_var = tk.StringVar()
         self.long_dms_var = tk.StringVar()
 
         # Crear etiquetas y campos de entrada
         ttk.Label(root, text="Zona UTM (1-60):").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.zone_entry = ttk.Entry(root, textvariable=self.zone_var)
+        self.zone_entry = ttk.Combobox(root, textvariable=self.zone_var, values=[str(i) for i in range(1, 61)])
         self.zone_entry.grid(row=0, column=1, padx=10, pady=5)
 
         ttk.Label(root, text="Norte/Sur:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.north_or_south_combobox = ttk.Combobox(root, textvariable=self.north_or_south_var, values=["Norte", "Sur"])
         self.north_or_south_combobox.grid(row=1, column=1, padx=10, pady=5)
 
-        ttk.Label(root, text="Este (m):").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Este (X):").grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.easting_entry = ttk.Entry(root, textvariable=self.easting_var)
         self.easting_entry.grid(row=2, column=1, padx=10, pady=5)
         self.paste_easting_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.easting_var))
@@ -36,7 +37,7 @@ class CoordenadasApp:
         self.copy_easting_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.easting_var))
         self.copy_easting_button.grid(row=2, column=3, padx=5, pady=5)
 
-        ttk.Label(root, text="Norte (m):").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Norte (Y):").grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.northing_entry = ttk.Entry(root, textvariable=self.northing_var)
         self.northing_entry.grid(row=3, column=1, padx=10, pady=5)
         self.paste_northing_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.northing_var))
@@ -44,47 +45,49 @@ class CoordenadasApp:
         self.copy_northing_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.northing_var))
         self.copy_northing_button.grid(row=3, column=3, padx=5, pady=5)
 
-        ttk.Label(root, text="Latitud (DMS):").grid(row=4, column=0, padx=10, pady=5, sticky="w")
-        self.lat_dms_entry = ttk.Entry(root, textvariable=self.lat_dms_var)
-        self.lat_dms_entry.grid(row=4, column=1, padx=10, pady=5)
-        self.paste_lat_dms_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.lat_dms_var))
-        self.paste_lat_dms_button.grid(row=4, column=2, padx=5, pady=5)
-        self.copy_lat_dms_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.lat_dms_var))
-        self.copy_lat_dms_button.grid(row=4, column=3, padx=5, pady=5)
+        # Boton de conversión UTM
+        self.convert_to_latlong_btn = ttk.Button(root, text="Convertir UTM", command=self.convert_from_utm)
+        self.convert_to_latlong_btn.grid(row=4, column=0, columnspan=1, pady=10)
 
-        ttk.Label(root, text="Longitud (DMS):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
-        self.long_dms_entry = ttk.Entry(root, textvariable=self.long_dms_var)
-        self.long_dms_entry.grid(row=5, column=1, padx=10, pady=5)
-        self.paste_long_dms_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.long_dms_var))
-        self.paste_long_dms_button.grid(row=5, column=2, padx=5, pady=5)
-        self.copy_long_dms_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.long_dms_var))
-        self.copy_long_dms_button.grid(row=5, column=3, padx=5, pady=5)
-
-        ttk.Label(root, text="Latitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Latitud (Decimal):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.latitude_entry = ttk.Entry(root, textvariable=self.latitude_var)
-        self.latitude_entry.grid(row=6, column=1, padx=10, pady=5)
+        self.latitude_entry.grid(row=5, column=1, padx=10, pady=5)
         self.paste_lat_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.latitude_var))
-        self.paste_lat_button.grid(row=6, column=2, padx=5, pady=5)
+        self.paste_lat_button.grid(row=5, column=2, padx=5, pady=5)
         self.copy_lat_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.latitude_var))
-        self.copy_lat_button.grid(row=6, column=3, padx=5, pady=5)
+        self.copy_lat_button.grid(row=5, column=3, padx=5, pady=5)
 
-        ttk.Label(root, text="Longitud (Decimal):").grid(row=7, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Longitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="w")
         self.longitude_entry = ttk.Entry(root, textvariable=self.longitude_var)
-        self.longitude_entry.grid(row=7, column=1, padx=10, pady=5)
+        self.longitude_entry.grid(row=6, column=1, padx=10, pady=5)
         self.paste_long_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.longitude_var))
-        self.paste_long_button.grid(row=7, column=2, padx=5, pady=5)
+        self.paste_long_button.grid(row=6, column=2, padx=5, pady=5)
         self.copy_long_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.longitude_var))
-        self.copy_long_button.grid(row=7, column=3, padx=5, pady=5)
+        self.copy_long_button.grid(row=6, column=3, padx=5, pady=5)
 
-        # Botones de conversión en una sola fila
-        self.convert_to_latlong_btn = ttk.Button(root, text="UTM -> Lat/Long", command=self.convert_from_utm)
-        self.convert_to_latlong_btn.grid(row=8, column=0, columnspan=1, pady=10)
-        self.convert_to_utm_btn = ttk.Button(root, text="Lat/Long -> UTM", command=self.convert_from_latlong)
-        self.convert_to_utm_btn.grid(row=8, column=1, columnspan=1, pady=10)
-        self.convert_to_dms_btn = ttk.Button(root, text="Decimal -> DMS", command=self.convert_from_decimal)
-        self.convert_to_dms_btn.grid(row=8, column=2, columnspan=1, pady=10)
-        self.convert_from_dms_btn = ttk.Button(root, text="DMS -> Decimal", command=self.convert_from_dms)
-        self.convert_from_dms_btn.grid(row=8, column=3, columnspan=1, pady=10)
+        # Boton de conversión Decimal
+        self.convert_to_utm_btn = ttk.Button(root, text="Convertir Lat/Lon", command=self.convert_from_latlong)
+        self.convert_to_utm_btn.grid(row=7, column=0, columnspan=1, pady=10)
+
+        ttk.Label(root, text="Latitud (DMS):").grid(row=8, column=0, padx=10, pady=5, sticky="w")
+        self.lat_dms_entry = ttk.Entry(root, textvariable=self.lat_dms_var)
+        self.lat_dms_entry.grid(row=8, column=1, padx=10, pady=5)
+        self.paste_lat_dms_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.lat_dms_var))
+        self.paste_lat_dms_button.grid(row=8, column=2, padx=5, pady=5)
+        self.copy_lat_dms_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.lat_dms_var))
+        self.copy_lat_dms_button.grid(row=8, column=3, padx=5, pady=5)
+
+        ttk.Label(root, text="Longitud (DMS):").grid(row=9, column=0, padx=10, pady=5, sticky="w")
+        self.long_dms_entry = ttk.Entry(root, textvariable=self.long_dms_var)
+        self.long_dms_entry.grid(row=9, column=1, padx=10, pady=5)
+        self.paste_long_dms_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.long_dms_var))
+        self.paste_long_dms_button.grid(row=9, column=2, padx=5, pady=5)
+        self.copy_long_dms_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.long_dms_var))
+        self.copy_long_dms_button.grid(row=9, column=3, padx=5, pady=5)
+
+        # Boton de conversión DMS
+        self.convert_from_dms_btn = ttk.Button(root, text="Convertir DMS", command=self.convert_from_dms)
+        self.convert_from_dms_btn.grid(row=10, column=0, columnspan=1, pady=10)
 
     def convert_from_utm(self):
         zone = self.zone_var.get()
