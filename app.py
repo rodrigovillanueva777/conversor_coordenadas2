@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from pyproj import Proj
 import re
 import webbrowser
+import os
 
 class CoordenadasApp:
     def __init__(self, root):
@@ -102,6 +103,10 @@ class CoordenadasApp:
         self.open_in_google_maps_button = ttk.Button(root, text="Abrir en Google Maps", command=self.open_in_google_maps)
         self.open_in_google_maps_button.grid(row=11, column=0, columnspan=4, pady=10)
 
+        # Botón para crear archivo KML y abrir en Google Earth
+        self.open_in_google_earth_button = ttk.Button(root, text="Abrir en Google Earth", command=self.create_kml_and_open_in_google_earth)
+        self.open_in_google_earth_button.grid(row=12, column=0, columnspan=4, pady=10)
+
     def convert_from_utm(self):
         zone = self.zone_var.get()
         easting = self.easting_var.get()
@@ -120,6 +125,7 @@ class CoordenadasApp:
             messagebox.showwarning("Advertencia", "Por favor complete todos los campos.")
 
     def convert_from_latlong(self):
+  
         latitude = self.latitude_var.get()
         longitude = self.longitude_var.get()
 
@@ -230,6 +236,35 @@ class CoordenadasApp:
             webbrowser.open(url)
         else:
             messagebox.showwarning("Advertencia", "Por favor convierta las coordenadas primero.")
+
+    def create_kml_and_open_in_google_earth(self):
+        latitude = self.latitude_var.get()
+        longitude = self.longitude_var.get()
+
+        if latitude and longitude:
+            try:
+                latitude = float(latitude)
+                longitude = float(longitude)
+                kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Placemark>
+    <name>Coordenadas Convertidas</name>
+    <Point>
+      <coordinates>{longitude},{latitude},0</coordinates>
+    </Point>
+  </Placemark>
+</kml>"""
+
+                kml_file_path = "coordinates.kml"
+                with open(kml_file_path, "w") as kml_file:
+                    kml_file.write(kml_content)
+
+                # Abrir el archivo KML con la aplicación predeterminada (Google Earth)
+                os.startfile(kml_file_path)
+            except ValueError:
+                messagebox.showerror("Error", "Latitud y Longitud deben ser valores numéricos.")
+        else:
+            messagebox.showerror("Error", "Por favor, convierta las coordenadas primero.")
 
 if __name__ == "__main__":
     root = tk.Tk()
