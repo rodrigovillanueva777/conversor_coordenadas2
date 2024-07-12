@@ -2,12 +2,21 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from pyproj import Proj
 import re
+import webbrowser
 
 class CoordenadasApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Conversor de Coordenadas")
         self.root.attributes('-topmost', True)  # Mantener ventana sobre las demás
+        self.root.configure(background='#ADD8E6')  # Fondo azul claro
+
+        # Estilos personalizados
+        style = ttk.Style()
+        style.configure('TLabel', background='#ADD8E6')
+        style.configure('TButton', background='#ADD8E6')
+        style.configure('TCombobox', background='#ADD8E6')
+        style.configure('TEntry', background='#ADD8E6')
 
         # Variables para almacenar entradas del usuario
         self.zone_var = tk.IntVar()
@@ -89,13 +98,17 @@ class CoordenadasApp:
         self.convert_from_dms_btn = ttk.Button(root, text="Convertir DMS", command=self.convert_from_dms)
         self.convert_from_dms_btn.grid(row=10, column=0, columnspan=1, pady=10)
 
+        # Botón para abrir en Google Maps (anteriormente Google Earth)
+        self.open_in_google_maps_button = ttk.Button(root, text="Abrir en Google Maps", command=self.open_in_google_maps)
+        self.open_in_google_maps_button.grid(row=11, column=0, columnspan=4, pady=10)
+
     def convert_from_utm(self):
         zone = self.zone_var.get()
         easting = self.easting_var.get()
         northing = self.northing_var.get()
         north_or_south = self.north_or_south_var.get()
 
-        if zone and easting and northing and north_or_south:
+        if zone and easting and northing:
             try:
                 latitude, longitude = self.utm_to_latlong(zone, easting, northing, north_or_south)
                 self.latitude_var.set(f"{latitude:.6f}")
@@ -208,6 +221,15 @@ class CoordenadasApp:
     def copy_to_clipboard(self, var):
         self.root.clipboard_clear()
         self.root.clipboard_append(var.get())
+
+    def open_in_google_maps(self):
+        latitude = self.latitude_var.get()
+        longitude = self.longitude_var.get()
+        if latitude and longitude:
+            url = f"https://www.google.com/maps/place/{latitude},{longitude}/@{latitude},{longitude},18.75z/"
+            webbrowser.open(url)
+        else:
+            messagebox.showwarning("Advertencia", "Por favor convierta las coordenadas primero.")
 
 if __name__ == "__main__":
     root = tk.Tk()
