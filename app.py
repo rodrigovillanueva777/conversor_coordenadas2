@@ -23,8 +23,8 @@ class CoordenadasApp:
         self.zone_var = tk.IntVar()
         self.easting_var = tk.DoubleVar()
         self.northing_var = tk.DoubleVar()
-        self.latitude_var = tk.DoubleVar()
-        self.longitude_var = tk.DoubleVar()
+        self.latitude_var = tk.StringVar()
+        self.longitude_var = tk.StringVar()
         self.north_or_south_var = tk.StringVar(value="Norte")  # Valor inicial
         self.zone_var = tk.IntVar()
         self.lat_dms_var = tk.StringVar()
@@ -124,10 +124,32 @@ class CoordenadasApp:
         else:
             messagebox.showwarning("Advertencia", "Por favor complete todos los campos.")
 
+    def limpiar_entrada(self, coordenada):
+        # Mantiene solo números, signo de menos y punto decimal, elimina espacios y signos "º" y "°"
+        coordenada_limpia = coordenada.replace(" ", "").replace("º", "").replace("°", "")
+    
+        # Asegurarse de que solo haya un signo de menos y esté al principio
+        if coordenada_limpia.count('-') > 1:
+            partes = coordenada_limpia.split('-')
+            coordenada_limpia = '-' + ''.join(partes)
+    
+        # Asegurarse de que solo haya un punto decimal
+        if coordenada_limpia.count('.') > 1:
+            partes = coordenada_limpia.split('.')
+            coordenada_limpia = partes[0] + '.' + ''.join(partes[1:])
+    
+        return coordenada_limpia
+
     def convert_from_latlong(self):
-  
-        latitude = self.latitude_var.get()
-        longitude = self.longitude_var.get()
+        latitude_str = self.limpiar_entrada(self.latitude_var.get())
+        longitude_str = self.limpiar_entrada(self.longitude_var.get())
+
+        try:
+            latitude = float(latitude_str)
+            longitude = float(longitude_str)
+        except ValueError:
+            messagebox.showerror("Error", "Las coordenadas deben ser números válidos.")
+            return
 
         if latitude and longitude:
             try:
@@ -141,7 +163,7 @@ class CoordenadasApp:
                 messagebox.showerror("Error", str(e))
         else:
             messagebox.showwarning("Advertencia", "Por favor complete todos los campos.")
-
+    
     def utm_to_latlong(self, zone, easting, northing, north_or_south):
         # Definir el sistema de coordenadas UTM para la zona correspondiente
         projstring = "+proj=utm +zone={}".format(zone)
@@ -198,22 +220,28 @@ class CoordenadasApp:
 
     def convert_from_decimal(self):
         try:
-            latitude = self.latitude_var.get()
-            longitude = self.longitude_var.get()
+            latitude_str = self.limpiar_entrada(self.latitude_var.get())
+            longitude_str = self.limpiar_entrada(self.longitude_var.get())
+            latitude = float(latitude_str)
+            longitude = float(longitude_str)
             self.lat_dms_var.set(self.decimal_to_dms(latitude, is_latitude=True))
             self.long_dms_var.set(self.decimal_to_dms(longitude, is_latitude=False))
+        except ValueError:
+            messagebox.showerror("Error", "Las coordenadas deben ser números válidos.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
     def convert_from_dms(self):
         try:
-            lat_dms = self.lat_dms_var.get()
-            long_dms = self.long_dms_var.get()
-            lat_decimal = self.dms_to_decimal(lat_dms)
-            long_decimal = self.dms_to_decimal(long_dms)
+            lat_dms_str = self.limpiar_entrada(self.lat_dms_var.get())
+            long_dms_str = self.limpiar_entrada(self.long_dms_var.get())
+            lat_decimal = self.dms_to_decimal(lat_dms_str)
+            long_decimal = self.dms_to_decimal(long_dms_str)
             self.latitude_var.set(f"{lat_decimal:.6f}")
             self.longitude_var.set(f"{long_decimal:.6f}")
             self.convert_from_latlong()
+        except ValueError:
+            messagebox.showerror("Error", "Las coordenadas DMS deben estar en el formato correcto.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
