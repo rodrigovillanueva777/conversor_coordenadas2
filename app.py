@@ -1,112 +1,175 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from pyproj import Proj
+from PIL import Image, ImageTk
+from ttkbootstrap import Style
+import ttkbootstrap as tb
 import re
 import webbrowser
 import os
+import json
 
 class CoordenadasApp:
+
     def __init__(self, root):
         self.root = root
-        self.root.title("Conversor de Coordenadas")
-        self.root.attributes('-topmost', True)  # Mantener ventana sobre las demás
-        self.root.configure(background='#ADD8E6')  # Fondo azul claro
+        self.root.title("ConverCoor.v2")
+        self.root.attributes('-topmost', False)  # Mantener ventana sobre las demás
 
+        # Configurar el comportamiento de las filas y columnas para que se ajusten
+        self.root.grid_rowconfigure(0, weight=0)  # Fila para las etiquetas
+        self.root.grid_rowconfigure(1, weight=0)  # Fila para los combobox
+        self.root.grid_rowconfigure(2, weight=1, minsize=50)  # Fila para los botones, que se expandirá cuando se necesite espacio
+        self.root.grid_rowconfigure(3, weight=1)  # Fila para los botones debajo
+        self.root.grid_columnconfigure(0, weight=0,)  # Columna para la etiqueta (centrado)
+        self.root.grid_columnconfigure(1, weight=1, uniform="equal")  # Columna para los campos de entrada (centrado)
+        
         # Estilos personalizados
-        style = ttk.Style()
-        style.configure('TLabel', background='#ADD8E6')
-        style.configure('TButton', background='#ADD8E6')
-        style.configure('TCombobox', background='#ADD8E6')
-        style.configure('TEntry', background='#ADD8E6')
+        style = Style("darkly")
+        style.configure('TLabel')
+        style.configure('TButton')
+        style.configure('TCombobox')
+        style.configure('TEntry')
 
         # Variables para almacenar entradas del usuario
         self.zone_var = tk.IntVar()
         self.easting_var = tk.DoubleVar()
         self.northing_var = tk.DoubleVar()
-        self.latitude_var = tk.DoubleVar()
-        self.longitude_var = tk.DoubleVar()
+        self.latitude_var = tk.StringVar()
+        self.longitude_var = tk.StringVar()
         self.north_or_south_var = tk.StringVar(value="Norte")  # Valor inicial
-        self.zone_var = tk.IntVar()
         self.lat_dms_var = tk.StringVar()
         self.long_dms_var = tk.StringVar()
 
         # Crear etiquetas y campos de entrada
-        ttk.Label(root, text="Zona UTM (1-60):").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.zone_entry = ttk.Combobox(root, textvariable=self.zone_var, values=[str(i) for i in range(1, 61)])
+        ttk.Label(root, text="Zona UTM (1-60):").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.zone_entry = ttk.Combobox(root, textvariable=self.zone_var, values=[str(i) for i in range(1, 61)], width=10)
         self.zone_entry.grid(row=0, column=1, padx=10, pady=5)
 
         ttk.Label(root, text="Norte/Sur:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.north_or_south_combobox = ttk.Combobox(root, textvariable=self.north_or_south_var, values=["Norte", "Sur"])
+        self.north_or_south_combobox = ttk.Combobox(root, textvariable=self.north_or_south_var, values=["Norte", "Sur"], width=10)
         self.north_or_south_combobox.grid(row=1, column=1, padx=10, pady=5)
+
+        self.paste_icon = ImageTk.PhotoImage(Image.open("paste_icon.png").resize((20, 20)))
+        self.copy_icon = ImageTk.PhotoImage(Image.open("copy_icon.png").resize((20, 20)))
+        self.cut_icon = ImageTk.PhotoImage(Image.open("cut_icon.png").resize((20, 20)))
+        self.convert_icon = ImageTk.PhotoImage(Image.open("convert_icon.png").resize((25, 25)))
 
         ttk.Label(root, text="Este (X):").grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.easting_entry = ttk.Entry(root, textvariable=self.easting_var)
-        self.easting_entry.grid(row=2, column=1, padx=10, pady=5)
-        self.paste_easting_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.easting_var))
+        self.easting_entry.grid(row=2, column=1, padx=5, pady=5)
+        self.paste_easting_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.easting_var))
         self.paste_easting_button.grid(row=2, column=2, padx=5, pady=5)
-        self.copy_easting_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.easting_var))
+        self.copy_easting_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.easting_var))
         self.copy_easting_button.grid(row=2, column=3, padx=5, pady=5)
+        self.cut_easting_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.easting_var, self.easting_entry))
+        self.cut_easting_button.grid(row=2, column=4, padx=5, pady=5)
 
-        ttk.Label(root, text="Norte (Y):").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        ToolTip(self.copy_easting_button, "Copiar")
+        ToolTip(self.paste_easting_button, "Pegar")
+        ToolTip(self.cut_easting_button, "Cortar")
+
+        ttk.Label(root, text="Norte (Y):").grid(row=3, column=0, padx=10, pady=5, sticky="ew")
         self.northing_entry = ttk.Entry(root, textvariable=self.northing_var)
         self.northing_entry.grid(row=3, column=1, padx=10, pady=5)
-        self.paste_northing_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.northing_var))
+        self.paste_northing_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.northing_var))
         self.paste_northing_button.grid(row=3, column=2, padx=5, pady=5)
-        self.copy_northing_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.northing_var))
+        self.copy_northing_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.northing_var))
         self.copy_northing_button.grid(row=3, column=3, padx=5, pady=5)
+        self.cut_northing_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.northing_var, self.northing_entry))
+        self.cut_northing_button.grid(row=3, column=4, padx=5, pady=5)
+
+        ToolTip(self.copy_northing_button, "Copiar")
+        ToolTip(self.paste_northing_button, "Pegar")
+        ToolTip(self.cut_northing_button, "Cortar")
 
         # Boton de conversión UTM
-        self.convert_to_latlong_btn = ttk.Button(root, text="Convertir UTM", command=self.convert_from_utm)
-        self.convert_to_latlong_btn.grid(row=4, column=0, columnspan=1, pady=10)
 
-        ttk.Label(root, text="Latitud (Decimal):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        self.convert_to_latlong_btn = ttk.Button(root, image=self.convert_icon, command=self.convert_from_utm)
+        self.convert_to_latlong_btn.grid(row=4, column=1, columnspan=1, pady=10)
+
+        ToolTip(self.convert_to_latlong_btn, "Convertir de UTM")
+
+        ttk.Label(root, text="Latitud (Decimal):").grid(row=5, column=0, padx=10, pady=5, sticky="ew")
         self.latitude_entry = ttk.Entry(root, textvariable=self.latitude_var)
         self.latitude_entry.grid(row=5, column=1, padx=10, pady=5)
-        self.paste_lat_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.latitude_var))
+        self.paste_lat_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.latitude_var))
         self.paste_lat_button.grid(row=5, column=2, padx=5, pady=5)
-        self.copy_lat_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.latitude_var))
+        self.copy_lat_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.latitude_var))
         self.copy_lat_button.grid(row=5, column=3, padx=5, pady=5)
+        self.cut_lat_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.latitude_var, self.latitude_entry))
+        self.cut_lat_button.grid(row=5, column=4, padx=5, pady=5)
 
-        ttk.Label(root, text="Longitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="w")
+        ToolTip(self.copy_lat_button, "Copiar")
+        ToolTip(self.paste_lat_button, "Pegar")
+        ToolTip(self.cut_lat_button, "Cortar")
+
+        ttk.Label(root, text="Longitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="ew")
         self.longitude_entry = ttk.Entry(root, textvariable=self.longitude_var)
         self.longitude_entry.grid(row=6, column=1, padx=10, pady=5)
-        self.paste_long_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.longitude_var))
+        self.paste_long_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.longitude_var))
         self.paste_long_button.grid(row=6, column=2, padx=5, pady=5)
-        self.copy_long_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.longitude_var))
+        self.copy_long_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.longitude_var))
         self.copy_long_button.grid(row=6, column=3, padx=5, pady=5)
+        self.cut_long_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.longitude_var, self.longitude_entry))
+        self.cut_long_button.grid(row=6, column=4, padx=5, pady=5)
+
+        ToolTip(self.copy_long_button, "Copiar")
+        ToolTip(self.paste_long_button, "Pegar")
+        ToolTip(self.cut_long_button, "Cortar")
 
         # Boton de conversión Decimal
-        self.convert_to_utm_btn = ttk.Button(root, text="Convertir Lat/Lon", command=self.convert_from_latlong)
-        self.convert_to_utm_btn.grid(row=7, column=0, columnspan=1, pady=10)
+        self.convert_to_utm_btn = ttk.Button(root, image=self.convert_icon, command=self.convert_from_latlong)
+        self.convert_to_utm_btn.grid(row=7, column=1, columnspan=1, pady=10)
 
-        ttk.Label(root, text="Latitud (DMS):").grid(row=8, column=0, padx=10, pady=5, sticky="w")
+        ToolTip(self.convert_to_utm_btn, "Convertir de Decimal")
+
+        ttk.Label(root, text="Latitud (DMS):").grid(row=8, column=0, padx=10, pady=5, sticky="ew")
         self.lat_dms_entry = ttk.Entry(root, textvariable=self.lat_dms_var)
         self.lat_dms_entry.grid(row=8, column=1, padx=10, pady=5)
-        self.paste_lat_dms_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.lat_dms_var))
+        self.paste_lat_dms_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.lat_dms_var))
         self.paste_lat_dms_button.grid(row=8, column=2, padx=5, pady=5)
-        self.copy_lat_dms_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.lat_dms_var))
+        self.copy_lat_dms_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.lat_dms_var))
         self.copy_lat_dms_button.grid(row=8, column=3, padx=5, pady=5)
+        self.cut_lat_dms = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.lat_dms_var, self.lat_dms_entry))
+        self.cut_lat_dms.grid(row=8, column=4, padx=5, pady=5)
 
-        ttk.Label(root, text="Longitud (DMS):").grid(row=9, column=0, padx=10, pady=5, sticky="w")
+        ToolTip(self.copy_long_button, "Copiar")
+        ToolTip(self.paste_long_button, "Pegar")
+        ToolTip(self.cut_long_button, "Cortar")
+
+        ttk.Label(root, text="Longitud (DMS):").grid(row=9, column=0, padx=10, pady=5, sticky="ew")
         self.long_dms_entry = ttk.Entry(root, textvariable=self.long_dms_var)
         self.long_dms_entry.grid(row=9, column=1, padx=10, pady=5)
-        self.paste_long_dms_button = ttk.Button(root, text="Pegar", command=lambda: self.paste_from_clipboard(self.long_dms_var))
+        self.paste_long_dms_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.long_dms_var))
         self.paste_long_dms_button.grid(row=9, column=2, padx=5, pady=5)
-        self.copy_long_dms_button = ttk.Button(root, text="Copiar", command=lambda: self.copy_to_clipboard(self.long_dms_var))
+        self.copy_long_dms_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.long_dms_var))
         self.copy_long_dms_button.grid(row=9, column=3, padx=5, pady=5)
+        self.cut_long_dms = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.long_dms_var, self.long_dms_entry))
+        self.cut_long_dms.grid(row=9, column=4, padx=5, pady=5)
+
+        ToolTip(self.copy_long_button, "Copiar")
+        ToolTip(self.paste_long_button, "Pegar")
+        ToolTip(self.cut_long_button, "Cortar")
 
         # Boton de conversión DMS
-        self.convert_from_dms_btn = ttk.Button(root, text="Convertir DMS", command=self.convert_from_dms)
-        self.convert_from_dms_btn.grid(row=10, column=0, columnspan=1, pady=10)
+        self.convert_from_dms_btn = ttk.Button(root, image=self.convert_icon, command=self.convert_from_dms)
+        self.convert_from_dms_btn.grid(row=10, column=1, columnspan=1, pady=10)
+
+        ToolTip(self.convert_from_dms_btn, "Convertir de DMS")
+
+        self.maps_icon = ImageTk.PhotoImage(Image.open("maps_icon.png").resize((20, 20)))
+        self.earth_icon = ImageTk.PhotoImage(Image.open("earth_icon.png").resize((20, 20)))
+        
 
         # Botón para abrir en Google Maps (anteriormente Google Earth)
-        self.open_in_google_maps_button = ttk.Button(root, text="Abrir en Google Maps", command=self.open_in_google_maps)
+        self.open_in_google_maps_button = ttk.Button(root, text='Ver en Maps', command=self.open_in_google_maps)
         self.open_in_google_maps_button.grid(row=11, column=0, columnspan=4, pady=10)
 
         # Botón para crear archivo KML y abrir en Google Earth
-        self.open_in_google_earth_button = ttk.Button(root, text="Abrir en Google Earth", command=self.create_kml_and_open_in_google_earth)
-        self.open_in_google_earth_button.grid(row=12, column=0, columnspan=4, pady=10)
-
+        self.open_in_google_earth_button = ttk.Button(root, text='Abrir en Earth', command=self.create_kml_and_open_in_google_earth)
+        self.open_in_google_earth_button.grid(row=11, column=2, columnspan=4, pady=10)
+        
     def convert_from_utm(self):
         zone = self.zone_var.get()
         easting = self.easting_var.get()
@@ -124,10 +187,32 @@ class CoordenadasApp:
         else:
             messagebox.showwarning("Advertencia", "Por favor complete todos los campos.")
 
+    def limpiar_entrada(self, coordenada):
+        # Mantiene solo números, signo de menos y punto decimal, elimina espacios y signos "º" y "°"
+        coordenada_limpia = coordenada.replace(" ", "").replace("º", "").replace("°", "")
+    
+        # Asegurarse de que solo haya un signo de menos y esté al principio
+        if coordenada_limpia.count('-') > 1:
+            partes = coordenada_limpia.split('-')
+            coordenada_limpia = '-' + ''.join(partes)
+    
+        # Asegurarse de que solo haya un punto decimal
+        if coordenada_limpia.count('.') > 1:
+            partes = coordenada_limpia.split('.')
+            coordenada_limpia = partes[0] + '.' + ''.join(partes[1:])
+    
+        return coordenada_limpia
+
     def convert_from_latlong(self):
-  
-        latitude = self.latitude_var.get()
-        longitude = self.longitude_var.get()
+        latitude_str = self.limpiar_entrada(self.latitude_var.get())
+        longitude_str = self.limpiar_entrada(self.longitude_var.get())
+
+        try:
+            latitude = float(latitude_str)
+            longitude = float(longitude_str)
+        except ValueError:
+            messagebox.showerror("Error", "Las coordenadas deben ser números válidos.")
+            return
 
         if latitude and longitude:
             try:
@@ -141,7 +226,7 @@ class CoordenadasApp:
                 messagebox.showerror("Error", str(e))
         else:
             messagebox.showwarning("Advertencia", "Por favor complete todos los campos.")
-
+    
     def utm_to_latlong(self, zone, easting, northing, north_or_south):
         # Definir el sistema de coordenadas UTM para la zona correspondiente
         projstring = "+proj=utm +zone={}".format(zone)
@@ -174,6 +259,19 @@ class CoordenadasApp:
         # Convertir latitud y longitud a UTM
         easting, northing = utm_proj(longitude, latitude)
         return zone, easting, northing, north_or_south
+    
+    def decimal_to_dms(decimal):
+        degrees = int(decimal)
+        minutes = int((abs(decimal) - abs(degrees)) * 60)
+        seconds = (abs(decimal) - abs(degrees) - minutes / 60) * 3600
+        return f"{degrees}°{minutes}'{seconds:.2f}\""
+
+    def dms_to_decimal(dms):
+        match = re.match(r"(-?\d+)°(\d+)'([\d.]+)\"", dms)
+        if match:
+            degrees, minutes, seconds = map(float, match.groups())
+            decimal = degrees + (minutes / 60) + (seconds / 3600)
+        return -decimal if degrees < 0 else decimal
 
     def dms_to_decimal(self, dms_str):
         dms_str = dms_str.strip()
@@ -198,10 +296,14 @@ class CoordenadasApp:
 
     def convert_from_decimal(self):
         try:
-            latitude = self.latitude_var.get()
-            longitude = self.longitude_var.get()
+            latitude_str = self.limpiar_entrada(self.latitude_var.get())
+            longitude_str = self.limpiar_entrada(self.longitude_var.get())
+            latitude = float(latitude_str)
+            longitude = float(longitude_str)
             self.lat_dms_var.set(self.decimal_to_dms(latitude, is_latitude=True))
             self.long_dms_var.set(self.decimal_to_dms(longitude, is_latitude=False))
+        except ValueError:
+            messagebox.showerror("Error", "Las coordenadas deben ser números válidos.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -214,8 +316,14 @@ class CoordenadasApp:
             self.latitude_var.set(f"{lat_decimal:.6f}")
             self.longitude_var.set(f"{long_decimal:.6f}")
             self.convert_from_latlong()
+        except ValueError:
+            messagebox.showerror("Error", "Las coordenadas deben ser números válidos.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def copy_to_clipboard(self, var):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(var.get())
 
     def paste_from_clipboard(self, var):
         try:
@@ -224,9 +332,12 @@ class CoordenadasApp:
         except tk.TclError:
             pass  # No se pudo obtener datos del portapapeles o no es un número
 
-    def copy_to_clipboard(self, var):
+    def cut_to_clipboard(self, var, entry_widget):
         self.root.clipboard_clear()
         self.root.clipboard_append(var.get())
+        # Limpiar el campo
+        var.set("")
+        entry_widget.delete(0, "end")
 
     def open_in_google_maps(self):
         latitude = self.latitude_var.get()
@@ -265,6 +376,33 @@ class CoordenadasApp:
                 messagebox.showerror("Error", "Latitud y Longitud deben ser valores numéricos.")
         else:
             messagebox.showerror("Error", "Por favor, convierta las coordenadas primero.")
+            
+class ToolTip:
+    """Clase para mostrar tooltips al pasar el ratón sobre un widget"""
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip_window = None
+        widget.bind("<Enter>", self.show_tooltip)
+        widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event):
+        if self.tooltip_window:
+            return
+        x, y, _, _ = self.widget.bbox("insert")
+        x = self.widget.winfo_rootx() + x + 25
+        y = self.widget.winfo_rooty() + y + 20
+        
+        self.tooltip_window = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.geometry(f"+{x}+{y}")
+        label = tk.Label(tw, text=self.text, background="white", relief="solid", borderwidth=1, font=("Arial", 9))
+        label.pack(ipadx=5, ipady=2)
+
+    def hide_tooltip(self, event):
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
 
 if __name__ == "__main__":
     root = tk.Tk()
