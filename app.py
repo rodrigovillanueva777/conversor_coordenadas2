@@ -4,32 +4,28 @@ from pyproj import Proj
 from PIL import Image, ImageTk
 from ttkbootstrap import Style
 import ttkbootstrap as tb
+from ttkbootstrap.constants import SUCCESS, LIGHT, SECONDARY
 import re
 import webbrowser
 import os
 import json
 
 class CoordenadasApp:
-
     def __init__(self, root):
         self.root = root
         self.root.title("ConverCoor.v2")
         self.root.attributes('-topmost', False)  # Mantener ventana sobre las demás
 
         # Configurar el comportamiento de las filas y columnas para que se ajusten
-        self.root.grid_rowconfigure(0, weight=0)  # Fila para las etiquetas
-        self.root.grid_rowconfigure(1, weight=0)  # Fila para los combobox
-        self.root.grid_rowconfigure(2, weight=1, minsize=50)  # Fila para los botones, que se expandirá cuando se necesite espacio
-        self.root.grid_rowconfigure(3, weight=1)  # Fila para los botones debajo
-        self.root.grid_columnconfigure(0, weight=0,)  # Columna para la etiqueta (centrado)
-        self.root.grid_columnconfigure(1, weight=1, uniform="equal")  # Columna para los campos de entrada (centrado)
+        self.root.grid_rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13), weight=1)  # Fila para las etiquetas
+        self.root.grid_columnconfigure((0,2,3,4), weight=1)  # Columna para los campos de entrada (centrado)
+        self.root.grid_columnconfigure((1), weight=1)  
         
         # Estilos personalizados
-        style = Style("darkly")
-        style.configure('TLabel')
-        style.configure('TButton')
-        style.configure('TCombobox')
-        style.configure('TEntry')
+        self.theme_file = "theme_config.json"
+        self.style = tb.Style()
+        self.current_theme = self.load_theme()
+        self.style.theme_use(self.current_theme)
 
         # Variables para almacenar entradas del usuario
         self.zone_var = tk.IntVar()
@@ -42,6 +38,22 @@ class CoordenadasApp:
         self.long_dms_var = tk.StringVar()
 
         # Crear etiquetas y campos de entrada
+        self.pin_icon = ImageTk.PhotoImage(Image.open("pin_icon.png").resize((20, 20)))
+        self.config_icon = ImageTk.PhotoImage(Image.open("config_icon.png").resize((20, 20)))
+
+        # Estado de anclaje
+        self.is_pinned = False
+
+        # Botón de anclaje
+        self.pin_button = tb.Button(root, image=self.pin_icon, command=self.toggle_pin, bootstyle = SECONDARY)
+        self.pin_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+
+        self.config_button = tb.Button(root, image=self.config_icon, command=self.open_theme_selector, bootstyle = SECONDARY)
+        self.config_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+
+        ToolTip(self.pin_button, "Anclar sobre otras Apps")
+        ToolTip(self.config_button, "Configurar Tema")
+
         ttk.Label(root, text="Zona UTM (1-60):").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.zone_entry = ttk.Combobox(root, textvariable=self.zone_var, values=[str(i) for i in range(1, 61)], width=10)
         self.zone_entry.grid(row=0, column=1, padx=10, pady=5)
@@ -57,7 +69,7 @@ class CoordenadasApp:
 
         ttk.Label(root, text="Este (X):").grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.easting_entry = ttk.Entry(root, textvariable=self.easting_var)
-        self.easting_entry.grid(row=2, column=1, padx=5, pady=5)
+        self.easting_entry.grid(row=2, column=1, padx=10, pady=5)
         self.paste_easting_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.easting_var))
         self.paste_easting_button.grid(row=2, column=2, padx=5, pady=5)
         self.copy_easting_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.easting_var))
@@ -69,7 +81,7 @@ class CoordenadasApp:
         ToolTip(self.paste_easting_button, "Pegar")
         ToolTip(self.cut_easting_button, "Cortar")
 
-        ttk.Label(root, text="Norte (Y):").grid(row=3, column=0, padx=10, pady=5, sticky="ew")
+        ttk.Label(root, text="Norte (Y):").grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.northing_entry = ttk.Entry(root, textvariable=self.northing_var)
         self.northing_entry.grid(row=3, column=1, padx=10, pady=5)
         self.paste_northing_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.northing_var))
@@ -85,12 +97,12 @@ class CoordenadasApp:
 
         # Boton de conversión UTM
 
-        self.convert_to_latlong_btn = ttk.Button(root, image=self.convert_icon, command=self.convert_from_utm)
+        self.convert_to_latlong_btn = tb.Button(root, image=self.convert_icon, command=self.convert_from_utm, bootstyle=SUCCESS)
         self.convert_to_latlong_btn.grid(row=4, column=1, columnspan=1, pady=10)
 
         ToolTip(self.convert_to_latlong_btn, "Convertir de UTM")
 
-        ttk.Label(root, text="Latitud (Decimal):").grid(row=5, column=0, padx=10, pady=5, sticky="ew")
+        ttk.Label(root, text="Latitud (Decimal):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.latitude_entry = ttk.Entry(root, textvariable=self.latitude_var)
         self.latitude_entry.grid(row=5, column=1, padx=10, pady=5)
         self.paste_lat_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.latitude_var))
@@ -104,7 +116,7 @@ class CoordenadasApp:
         ToolTip(self.paste_lat_button, "Pegar")
         ToolTip(self.cut_lat_button, "Cortar")
 
-        ttk.Label(root, text="Longitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="ew")
+        ttk.Label(root, text="Longitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="w")
         self.longitude_entry = ttk.Entry(root, textvariable=self.longitude_var)
         self.longitude_entry.grid(row=6, column=1, padx=10, pady=5)
         self.paste_long_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.longitude_var))
@@ -119,12 +131,12 @@ class CoordenadasApp:
         ToolTip(self.cut_long_button, "Cortar")
 
         # Boton de conversión Decimal
-        self.convert_to_utm_btn = ttk.Button(root, image=self.convert_icon, command=self.convert_from_latlong)
+        self.convert_to_utm_btn = tb.Button(root, image=self.convert_icon, command=self.convert_from_latlong, bootstyle=SUCCESS)
         self.convert_to_utm_btn.grid(row=7, column=1, columnspan=1, pady=10)
 
         ToolTip(self.convert_to_utm_btn, "Convertir de Decimal")
 
-        ttk.Label(root, text="Latitud (DMS):").grid(row=8, column=0, padx=10, pady=5, sticky="ew")
+        ttk.Label(root, text="Latitud (DMS):").grid(row=8, column=0, padx=10, pady=5, sticky="w")
         self.lat_dms_entry = ttk.Entry(root, textvariable=self.lat_dms_var)
         self.lat_dms_entry.grid(row=8, column=1, padx=10, pady=5)
         self.paste_lat_dms_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.lat_dms_var))
@@ -138,7 +150,7 @@ class CoordenadasApp:
         ToolTip(self.paste_long_button, "Pegar")
         ToolTip(self.cut_long_button, "Cortar")
 
-        ttk.Label(root, text="Longitud (DMS):").grid(row=9, column=0, padx=10, pady=5, sticky="ew")
+        ttk.Label(root, text="Longitud (DMS):").grid(row=9, column=0, padx=10, pady=5, sticky="w")
         self.long_dms_entry = ttk.Entry(root, textvariable=self.long_dms_var)
         self.long_dms_entry.grid(row=9, column=1, padx=10, pady=5)
         self.paste_long_dms_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.long_dms_var))
@@ -153,22 +165,24 @@ class CoordenadasApp:
         ToolTip(self.cut_long_button, "Cortar")
 
         # Boton de conversión DMS
-        self.convert_from_dms_btn = ttk.Button(root, image=self.convert_icon, command=self.convert_from_dms)
+        self.convert_from_dms_btn = tb.Button(root, image=self.convert_icon, command=self.convert_from_dms, bootstyle=SUCCESS)
         self.convert_from_dms_btn.grid(row=10, column=1, columnspan=1, pady=10)
 
         ToolTip(self.convert_from_dms_btn, "Convertir de DMS")
 
-        self.maps_icon = ImageTk.PhotoImage(Image.open("maps_icon.png").resize((20, 20)))
-        self.earth_icon = ImageTk.PhotoImage(Image.open("earth_icon.png").resize((20, 20)))
+        self.maps_icon = ImageTk.PhotoImage(Image.open("maps_icon.png").resize((25, 25)))
+        self.earth_icon = ImageTk.PhotoImage(Image.open("earth_icon.png").resize((25, 25)))
         
-
-        # Botón para abrir en Google Maps (anteriormente Google Earth)
-        self.open_in_google_maps_button = ttk.Button(root, text='Ver en Maps', command=self.open_in_google_maps)
-        self.open_in_google_maps_button.grid(row=11, column=0, columnspan=4, pady=10)
+        # Botón para abrir en Google Maps
+        self.open_in_google_maps_button = tb.Button(root, image=self.maps_icon, command=self.open_in_google_maps, bootstyle=LIGHT)
+        self.open_in_google_maps_button.grid(row=11, column=1, columnspan=1, padx=10, pady=10)
 
         # Botón para crear archivo KML y abrir en Google Earth
-        self.open_in_google_earth_button = ttk.Button(root, text='Abrir en Earth', command=self.create_kml_and_open_in_google_earth)
-        self.open_in_google_earth_button.grid(row=11, column=2, columnspan=4, pady=10)
+        self.open_in_google_earth_button = tb.Button(root, image=self.earth_icon, command=self.create_kml_and_open_in_google_earth, bootstyle=LIGHT)
+        self.open_in_google_earth_button.grid(row=12, column=1, columnspan=1, padx=10, pady=10)
+
+        ToolTip(self.open_in_google_maps_button, "Abrir en Google Maps")
+        ToolTip(self.open_in_google_earth_button, "Crear Pin en Google Earth")
         
     def convert_from_utm(self):
         zone = self.zone_var.get()
@@ -377,6 +391,28 @@ class CoordenadasApp:
         else:
             messagebox.showerror("Error", "Por favor, convierta las coordenadas primero.")
             
+    def open_theme_selector(self):
+        # Abrir la ventana de configuración
+        theme_window = tk.Toplevel(self.root)
+        ThemedApp(theme_window)
+
+    def load_theme(self):
+        # Cargar el tema inicial
+        if os.path.exists(self.theme_file):
+            with open(self.theme_file, "r") as f:
+                data = json.load(f)
+                return data.get("theme", "cosmo")  # Tema predeterminado
+        return "cosmo"
+    
+    def toggle_pin(self):
+        """Alterna el estado de anclaje de la ventana."""
+        self.is_pinned = not self.is_pinned
+        self.root.attributes("-topmost", self.is_pinned)
+        if self.is_pinned:
+            messagebox.showinfo("Anclar", "ConverCoor se mostrará sobre otras apps.")
+        else:
+            messagebox.showinfo("Desanclar", "ConverCoor dejará de mostrarse sobre otras apps.")
+
 class ToolTip:
     """Clase para mostrar tooltips al pasar el ratón sobre un widget"""
     def __init__(self, widget, text):
@@ -403,6 +439,51 @@ class ToolTip:
         if self.tooltip_window:
             self.tooltip_window.destroy()
             self.tooltip_window = None
+
+class ThemedApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Selector de Tema")
+        self.theme_file = "theme_config.json"  # Archivo para guardar el tema
+
+        # Carga o define un tema inicial
+        self.style = tb.Style()
+        self.current_theme = self.load_theme()
+        self.style.theme_use(self.current_theme)
+
+        # Combobox para seleccionar el tema
+        ttk.Label(root, text="Elige un tema:").pack(pady=10)
+        self.theme_combobox = ttk.Combobox(
+            root,
+            values=self.style.theme_names(),
+            state="readonly"
+        )
+        self.theme_combobox.set(self.current_theme)  # Tema actual
+        self.theme_combobox.pack(pady=10)
+
+        # Botón para guardar tema
+        save_button = ttk.Button(root, text="Guardar Tema", command=self.save_selected_theme)
+        save_button.pack(pady=10)
+
+    def save_selected_theme(self):
+        # Guarda el tema seleccionado
+        selected_theme = self.theme_combobox.get()
+        self.style.theme_use(selected_theme)
+        self.save_theme(selected_theme)
+        tk.messagebox.showinfo("Configuración", f"Tema '{selected_theme}' guardado correctamente.")
+
+    def save_theme(self, theme):
+        # Guarda el tema en un archivo JSON
+        with open(self.theme_file, "w") as f:
+            json.dump({"theme": theme}, f)
+
+    def load_theme(self):
+        # Carga el tema desde el archivo JSON
+        if os.path.exists(self.theme_file):
+            with open(self.theme_file, "r") as f:
+                data = json.load(f)
+                return data.get("theme", "cosmo")  # Tema predeterminado
+        return "cosmo"  # Si no existe archivo, usa un tema predeterminado
 
 if __name__ == "__main__":
     root = tk.Tk()
