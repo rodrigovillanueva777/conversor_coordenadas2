@@ -10,16 +10,16 @@ import webbrowser
 import os
 import json
 
-class ConverCoor:
+class CoordenadasApp:
     def __init__(self, root):
         self.root = root
         self.root.title("ConverCoor.v2")
         self.root.attributes('-topmost', False)  # Mantener ventana sobre las demás
 
         # Configurar el comportamiento de las filas y columnas para que se ajusten
-        self.root.grid_rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13), weight=1)  # Fila para las etiquetas
-        self.root.grid_columnconfigure((0,2,3,4), weight=1)  # Columna para los campos de entrada (centrado)
-        self.root.grid_columnconfigure((1), weight=1)  
+        self.root.grid_rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), weight=1)  # Fila para las etiquetas
+        self.root.grid_columnconfigure((1), weight=1)  # Columna para los campos de entrada (centrado)
+        self.root.grid_columnconfigure((0,2,3,4), weight=0)  
         
         # Estilos personalizados
         self.theme_file = "theme_config.json"
@@ -37,6 +37,32 @@ class ConverCoor:
         self.lat_dms_var = tk.StringVar()
         self.long_dms_var = tk.StringVar()
 
+        # Título de la aplicación
+        title_label = ttk.Label(
+            root, 
+            text="ConverCoor", 
+            font=("Arial", 20, "bold"), 
+            anchor="center"
+            )
+        title_label.grid(row=0, column=0, columnspan=5, pady=(10, 0), sticky="n")
+
+        # Subtítulo
+        subtitle_label = ttk.Label(
+            root, 
+            text="Conversor de Coordenadas", 
+            font=("Arial", 10), 
+            anchor="center"
+        )
+        subtitle_label.grid(row=1, column=0, columnspan=5, pady=(0, 5), sticky="n")
+
+        # Línea adicional: UTM Estándar
+        utmost_label = ttk.Label(
+            root, 
+            text="UTM Estándar", 
+            font=("Arial", 10, "bold")
+        )
+        utmost_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
         # Crear etiquetas y campos de entrada
         self.pin_icon = ImageTk.PhotoImage(Image.open("pin_icon.png").resize((20, 20)))
         self.config_icon = ImageTk.PhotoImage(Image.open("config_icon.png").resize((20, 20)))
@@ -46,50 +72,50 @@ class ConverCoor:
 
         # Botón de anclaje
         self.pin_button = tb.Button(root, image=self.pin_icon, command=self.toggle_pin, bootstyle = SECONDARY)
-        self.pin_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.pin_button.grid(row=0, column=3, padx=5, pady=5)
 
         self.config_button = tb.Button(root, image=self.config_icon, command=self.open_theme_selector, bootstyle = SECONDARY)
-        self.config_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        self.config_button.grid(row=0, column=4, padx=5, pady=5)
 
         ToolTip(self.pin_button, "Anclar sobre otras Apps")
         ToolTip(self.config_button, "Configurar Tema")
 
-        ttk.Label(root, text="Zona UTM (1-60):").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(root, text="Zona:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.zone_entry = ttk.Combobox(root, textvariable=self.zone_var, values=[str(i) for i in range(1, 61)], width=10)
-        self.zone_entry.grid(row=0, column=1, padx=10, pady=5)
+        self.zone_entry.grid(row=3, column=1, padx=10, pady=5)
 
-        ttk.Label(root, text="Norte/Sur:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Hemisferio:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
         self.north_or_south_combobox = ttk.Combobox(root, textvariable=self.north_or_south_var, values=["Norte", "Sur"], width=10)
-        self.north_or_south_combobox.grid(row=1, column=1, padx=10, pady=5)
+        self.north_or_south_combobox.grid(row=4, column=1, padx=10, pady=5)
 
         self.paste_icon = ImageTk.PhotoImage(Image.open("paste_icon.png").resize((20, 20)))
         self.copy_icon = ImageTk.PhotoImage(Image.open("copy_icon.png").resize((20, 20)))
         self.cut_icon = ImageTk.PhotoImage(Image.open("cut_icon.png").resize((20, 20)))
         self.convert_icon = ImageTk.PhotoImage(Image.open("convert_icon.png").resize((25, 25)))
 
-        ttk.Label(root, text="Este (X):").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Este (X):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.easting_entry = ttk.Entry(root, textvariable=self.easting_var)
-        self.easting_entry.grid(row=2, column=1, padx=10, pady=5)
+        self.easting_entry.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
         self.paste_easting_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.easting_var))
-        self.paste_easting_button.grid(row=2, column=2, padx=5, pady=5)
+        self.paste_easting_button.grid(row=5, column=2, padx=5, pady=5)
         self.copy_easting_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.easting_var))
-        self.copy_easting_button.grid(row=2, column=3, padx=5, pady=5)
+        self.copy_easting_button.grid(row=5, column=3, padx=5, pady=5)
         self.cut_easting_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.easting_var, self.easting_entry))
-        self.cut_easting_button.grid(row=2, column=4, padx=5, pady=5)
+        self.cut_easting_button.grid(row=5, column=4, padx=5, pady=5)
 
         ToolTip(self.copy_easting_button, "Copiar")
         ToolTip(self.paste_easting_button, "Pegar")
         ToolTip(self.cut_easting_button, "Cortar")
 
-        ttk.Label(root, text="Norte (Y):").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Norte (Y):").grid(row=6, column=0, padx=10, pady=5, sticky="w")
         self.northing_entry = ttk.Entry(root, textvariable=self.northing_var)
-        self.northing_entry.grid(row=3, column=1, padx=10, pady=5)
+        self.northing_entry.grid(row=6, column=1, padx=10, pady=5, sticky="ew")
         self.paste_northing_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.northing_var))
-        self.paste_northing_button.grid(row=3, column=2, padx=5, pady=5)
+        self.paste_northing_button.grid(row=6, column=2, padx=5, pady=5)
         self.copy_northing_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.northing_var))
-        self.copy_northing_button.grid(row=3, column=3, padx=5, pady=5)
+        self.copy_northing_button.grid(row=6, column=3, padx=5, pady=5)
         self.cut_northing_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.northing_var, self.northing_entry))
-        self.cut_northing_button.grid(row=3, column=4, padx=5, pady=5)
+        self.cut_northing_button.grid(row=6, column=4, padx=5, pady=5)
 
         ToolTip(self.copy_northing_button, "Copiar")
         ToolTip(self.paste_northing_button, "Pegar")
@@ -98,33 +124,40 @@ class ConverCoor:
         # Boton de conversión UTM
 
         self.convert_to_latlong_btn = tb.Button(root, image=self.convert_icon, command=self.convert_from_utm, bootstyle=SUCCESS)
-        self.convert_to_latlong_btn.grid(row=4, column=1, columnspan=1, pady=10)
+        self.convert_to_latlong_btn.grid(row=7, column=1, columnspan=1, padx=30, pady=5, sticky="ew")
 
         ToolTip(self.convert_to_latlong_btn, "Convertir de UTM")
 
-        ttk.Label(root, text="Latitud (Decimal):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        utmost_label = ttk.Label(
+            root, 
+            text="Decimal", 
+            font=("Arial", 10, "bold")
+        )
+        utmost_label.grid(row=8, column=0, padx=10, pady=5, sticky="w")
+
+        ttk.Label(root, text="Latitud (Y):").grid(row=9, column=0, padx=10, pady=5, sticky="w")
         self.latitude_entry = ttk.Entry(root, textvariable=self.latitude_var)
-        self.latitude_entry.grid(row=5, column=1, padx=10, pady=5)
+        self.latitude_entry.grid(row=9, column=1, padx=10, pady=5, sticky="ew")
         self.paste_lat_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.latitude_var))
-        self.paste_lat_button.grid(row=5, column=2, padx=5, pady=5)
+        self.paste_lat_button.grid(row=9, column=2, padx=5, pady=5)
         self.copy_lat_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.latitude_var))
-        self.copy_lat_button.grid(row=5, column=3, padx=5, pady=5)
+        self.copy_lat_button.grid(row=9, column=3, padx=5, pady=5)
         self.cut_lat_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.latitude_var, self.latitude_entry))
-        self.cut_lat_button.grid(row=5, column=4, padx=5, pady=5)
+        self.cut_lat_button.grid(row=9, column=4, padx=5, pady=5)
 
         ToolTip(self.copy_lat_button, "Copiar")
         ToolTip(self.paste_lat_button, "Pegar")
         ToolTip(self.cut_lat_button, "Cortar")
 
-        ttk.Label(root, text="Longitud (Decimal):").grid(row=6, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Longitud (X):").grid(row=10, column=0, padx=10, pady=5, sticky="w")
         self.longitude_entry = ttk.Entry(root, textvariable=self.longitude_var)
-        self.longitude_entry.grid(row=6, column=1, padx=10, pady=5)
+        self.longitude_entry.grid(row=10, column=1, padx=10, pady=5, sticky="ew")
         self.paste_long_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.longitude_var))
-        self.paste_long_button.grid(row=6, column=2, padx=5, pady=5)
+        self.paste_long_button.grid(row=10, column=2, padx=5, pady=5)
         self.copy_long_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.longitude_var))
-        self.copy_long_button.grid(row=6, column=3, padx=5, pady=5)
+        self.copy_long_button.grid(row=10, column=3, padx=5, pady=5)
         self.cut_long_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.longitude_var, self.longitude_entry))
-        self.cut_long_button.grid(row=6, column=4, padx=5, pady=5)
+        self.cut_long_button.grid(row=10, column=4, padx=5, pady=5)
 
         ToolTip(self.copy_long_button, "Copiar")
         ToolTip(self.paste_long_button, "Pegar")
@@ -132,41 +165,48 @@ class ConverCoor:
 
         # Boton de conversión Decimal
         self.convert_to_utm_btn = tb.Button(root, image=self.convert_icon, command=self.convert_from_latlong, bootstyle=SUCCESS)
-        self.convert_to_utm_btn.grid(row=7, column=1, columnspan=1, pady=10)
+        self.convert_to_utm_btn.grid(row=11, column=1, columnspan=1, padx=30, pady=5, sticky="ew")
 
         ToolTip(self.convert_to_utm_btn, "Convertir de Decimal")
 
-        ttk.Label(root, text="Latitud (DMS):").grid(row=8, column=0, padx=10, pady=5, sticky="w")
+        utmost_label = ttk.Label(
+            root, 
+            text="Grados, Minutos, Segundos", 
+            font=("Arial", 10, "bold"), 
+        )
+        utmost_label.grid(row=12, column=0, padx=10, pady=5, sticky="w")
+
+        ttk.Label(root, text="Latitud:").grid(row=13, column=0, padx=10, pady=5, sticky="w")
         self.lat_dms_entry = ttk.Entry(root, textvariable=self.lat_dms_var)
-        self.lat_dms_entry.grid(row=8, column=1, padx=10, pady=5)
+        self.lat_dms_entry.grid(row=13, column=1, padx=10, pady=5, sticky="ew")
         self.paste_lat_dms_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.lat_dms_var))
-        self.paste_lat_dms_button.grid(row=8, column=2, padx=5, pady=5)
+        self.paste_lat_dms_button.grid(row=13, column=2, padx=5, pady=5)
         self.copy_lat_dms_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.lat_dms_var))
-        self.copy_lat_dms_button.grid(row=8, column=3, padx=5, pady=5)
-        self.cut_lat_dms = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.lat_dms_var, self.lat_dms_entry))
-        self.cut_lat_dms.grid(row=8, column=4, padx=5, pady=5)
+        self.copy_lat_dms_button.grid(row=13, column=3, padx=5, pady=5)
+        self.cut_lat_dms_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.lat_dms_var, self.lat_dms_entry))
+        self.cut_lat_dms_button.grid(row=13, column=4, padx=5, pady=5)
 
-        ToolTip(self.copy_long_button, "Copiar")
-        ToolTip(self.paste_long_button, "Pegar")
-        ToolTip(self.cut_long_button, "Cortar")
+        ToolTip(self.copy_lat_dms_button, "Copiar")
+        ToolTip(self.paste_lat_dms_button, "Pegar")
+        ToolTip(self.cut_lat_dms_button, "Cortar")
 
-        ttk.Label(root, text="Longitud (DMS):").grid(row=9, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(root, text="Longitud:").grid(row=14, column=0, padx=10, pady=5, sticky="w")
         self.long_dms_entry = ttk.Entry(root, textvariable=self.long_dms_var)
-        self.long_dms_entry.grid(row=9, column=1, padx=10, pady=5)
+        self.long_dms_entry.grid(row=14, column=1, padx=10, pady=5, sticky="ew")
         self.paste_long_dms_button = ttk.Button(root, image=self.paste_icon, command=lambda: self.paste_from_clipboard(self.long_dms_var))
-        self.paste_long_dms_button.grid(row=9, column=2, padx=5, pady=5)
+        self.paste_long_dms_button.grid(row=14, column=2, padx=5, pady=5)
         self.copy_long_dms_button = ttk.Button(root, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.long_dms_var))
-        self.copy_long_dms_button.grid(row=9, column=3, padx=5, pady=5)
-        self.cut_long_dms = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.long_dms_var, self.long_dms_entry))
-        self.cut_long_dms.grid(row=9, column=4, padx=5, pady=5)
+        self.copy_long_dms_button.grid(row=14, column=3, padx=5, pady=5)
+        self.cut_long_dms_button = ttk.Button(root, image=self.cut_icon, command=lambda: self.cut_to_clipboard(self.long_dms_var, self.long_dms_entry))
+        self.cut_long_dms_button.grid(row=14, column=4, padx=5, pady=5)
 
-        ToolTip(self.copy_long_button, "Copiar")
-        ToolTip(self.paste_long_button, "Pegar")
-        ToolTip(self.cut_long_button, "Cortar")
+        ToolTip(self.copy_long_dms_button, "Copiar")
+        ToolTip(self.paste_long_dms_button, "Pegar")
+        ToolTip(self.cut_long_dms_button, "Cortar")
 
         # Boton de conversión DMS
         self.convert_from_dms_btn = tb.Button(root, image=self.convert_icon, command=self.convert_from_dms, bootstyle=SUCCESS)
-        self.convert_from_dms_btn.grid(row=10, column=1, columnspan=1, pady=10)
+        self.convert_from_dms_btn.grid(row=15, column=1, columnspan=1, padx=30, pady=5, sticky="ew")
 
         ToolTip(self.convert_from_dms_btn, "Convertir de DMS")
 
@@ -175,11 +215,11 @@ class ConverCoor:
         
         # Botón para abrir en Google Maps
         self.open_in_google_maps_button = tb.Button(root, image=self.maps_icon, command=self.open_in_google_maps, bootstyle=LIGHT)
-        self.open_in_google_maps_button.grid(row=11, column=1, columnspan=1, padx=10, pady=10)
+        self.open_in_google_maps_button.grid(row=16, column=1, columnspan=1, padx=10, pady=10, sticky="ew")
 
         # Botón para crear archivo KML y abrir en Google Earth
         self.open_in_google_earth_button = tb.Button(root, image=self.earth_icon, command=self.create_kml_and_open_in_google_earth, bootstyle=LIGHT)
-        self.open_in_google_earth_button.grid(row=12, column=1, columnspan=1, padx=10, pady=10)
+        self.open_in_google_earth_button.grid(row=17, column=1, columnspan=1, padx=10, pady=10, sticky="ew")
 
         ToolTip(self.open_in_google_maps_button, "Abrir en Google Maps")
         ToolTip(self.open_in_google_earth_button, "Crear Pin en Google Earth")
@@ -390,11 +430,13 @@ class ConverCoor:
                 messagebox.showerror("Error", "Latitud y Longitud deben ser valores numéricos.")
         else:
             messagebox.showerror("Error", "Por favor, convierta las coordenadas primero.")
-            
+
     def open_theme_selector(self):
         # Abrir la ventana de configuración
         theme_window = tk.Toplevel(self.root)
         ThemedApp(theme_window)
+        theme_window.geometry("200x150")
+        center_window(theme_window) # type: ignore
 
     def load_theme(self):
         # Cargar el tema inicial
@@ -482,10 +524,28 @@ class ThemedApp:
         if os.path.exists(self.theme_file):
             with open(self.theme_file, "r") as f:
                 data = json.load(f)
-                return data.get("theme", "cosmo")  # Tema predeterminado
-        return "cosmo"  # Si no existe archivo, usa un tema predeterminado
+                return data.get("theme", "superhero")  # Tema predeterminado
+        return "superhero"  # Si no existe archivo, usa un tema predeterminado
+
+def center_window(window, width=None, height=None):
+    """Función para centrar cualquier ventana."""
+    window.update_idletasks()  # Actualiza la geometría de la ventana
+    if width is None:
+        width = window.winfo_width()
+    if height is None:
+        height = window.winfo_height()
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ConverCoor(root)
+    app = CoordenadasApp(root)
+
+    # Configurar tamaño inicial y centrar la ventana principal
+    root.geometry("550x800")  # Tamaño inicial de la ventana principal
+    center_window(root)  # Centrar la ventana principal
+
     root.mainloop()
