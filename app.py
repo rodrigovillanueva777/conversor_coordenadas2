@@ -10,7 +10,7 @@ import webbrowser
 import os
 import json
 
-class CoordenadasApp:
+class ConverCoor:
     def __init__(self, root):
         self.root = root
         self.root.title("ConverCoor.v2")
@@ -487,5 +487,5 @@ class ThemedApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = CoordenadasApp(root)
+    app = ConverCoor(root)
     root.mainloop()
