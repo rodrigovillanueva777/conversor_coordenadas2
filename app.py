@@ -15,7 +15,10 @@ class CoordenadasApp:
         self.root = root
         self.root.title("ConverCoor.v2")
         self.root.attributes('-topmost', False)  # Mantener ventana sobre las demás
+<<<<<<< HEAD
         self.theme_window = None
+=======
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
 
         # Configurar el comportamiento de las filas y columnas para que se ajusten
         self.root.grid_rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), weight=1)  # Fila para las etiquetas
@@ -65,13 +68,21 @@ class CoordenadasApp:
         utmost_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         # Crear etiquetas y campos de entrada
+<<<<<<< HEAD
         self.pin_icon = ImageTk.PhotoImage(Image.open("icon/pin_icon.png").resize((20, 20)))
         self.config_icon = ImageTk.PhotoImage(Image.open("icon/config_icon.png").resize((20, 20)))
+=======
+        self.pin_icon = ImageTk.PhotoImage(Image.open("pin_icon.png").resize((20, 20)))
+        self.config_icon = ImageTk.PhotoImage(Image.open("config_icon.png").resize((20, 20)))
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
 
         # Estado de anclaje
         self.is_pinned = False
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
         # Botón de anclaje
         self.pin_button = tb.Button(root, image=self.pin_icon, command=self.toggle_pin, bootstyle = SECONDARY)
         self.pin_button.grid(row=0, column=3, padx=5, pady=5)
@@ -90,10 +101,17 @@ class CoordenadasApp:
         self.north_or_south_combobox = ttk.Combobox(root, textvariable=self.north_or_south_var, values=["Norte", "Sur"], width=10)
         self.north_or_south_combobox.grid(row=4, column=1, padx=10, pady=5)
 
+<<<<<<< HEAD
         self.paste_icon = ImageTk.PhotoImage(Image.open("icon/paste_icon.png").resize((20, 20)))
         self.copy_icon = ImageTk.PhotoImage(Image.open("icon/copy_icon.png").resize((20, 20)))
         self.cut_icon = ImageTk.PhotoImage(Image.open("icon/cut_icon.png").resize((20, 20)))
         self.convert_icon = ImageTk.PhotoImage(Image.open("icon/convert_icon.png").resize((25, 25)))
+=======
+        self.paste_icon = ImageTk.PhotoImage(Image.open("paste_icon.png").resize((20, 20)))
+        self.copy_icon = ImageTk.PhotoImage(Image.open("copy_icon.png").resize((20, 20)))
+        self.cut_icon = ImageTk.PhotoImage(Image.open("cut_icon.png").resize((20, 20)))
+        self.convert_icon = ImageTk.PhotoImage(Image.open("convert_icon.png").resize((25, 25)))
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
 
         ttk.Label(root, text="Este (X):").grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.easting_entry = ttk.Entry(root, textvariable=self.easting_var)
@@ -212,8 +230,13 @@ class CoordenadasApp:
 
         ToolTip(self.convert_from_dms_btn, "Convertir de DMS")
 
+<<<<<<< HEAD
         self.maps_icon = ImageTk.PhotoImage(Image.open("icon/maps_icon.png").resize((25, 25)))
         self.earth_icon = ImageTk.PhotoImage(Image.open("icon/earth_icon.png").resize((25, 25)))
+=======
+        self.maps_icon = ImageTk.PhotoImage(Image.open("maps_icon.png").resize((25, 25)))
+        self.earth_icon = ImageTk.PhotoImage(Image.open("earth_icon.png").resize((25, 25)))
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
         
         # Botón para abrir en Google Maps
         self.open_in_google_maps_button = tb.Button(root, image=self.maps_icon, command=self.open_in_google_maps, bootstyle=LIGHT)
@@ -433,6 +456,7 @@ class CoordenadasApp:
         else:
             messagebox.showerror("Error", "Por favor, convierta las coordenadas primero.")
 
+<<<<<<< HEAD
     def toggle_pin(self):
         """Alterna el estado de anclaje de la ventana."""
         self.is_pinned = not self.is_pinned
@@ -440,6 +464,8 @@ class CoordenadasApp:
         estado = "sobre otras apps" if self.is_pinned else "menor"
         messagebox.showinfo("Anclar", f"ConverCoor tendrá prioridad {estado}.")
 
+=======
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
     def open_theme_selector(self):
         # Abrir la ventana de configuración
         theme_window = tk.Toplevel(self.root)
@@ -454,6 +480,45 @@ class CoordenadasApp:
                 data = json.load(f)
                 return data.get("theme", "cosmo")  # Tema predeterminado
         return "cosmo"
+<<<<<<< HEAD
+=======
+    
+    def toggle_pin(self):
+        """Alterna el estado de anclaje de la ventana."""
+        self.is_pinned = not self.is_pinned
+        self.root.attributes("-topmost", self.is_pinned)
+        if self.is_pinned:
+            messagebox.showinfo("Anclar", "ConverCoor se mostrará sobre otras apps.")
+        else:
+            messagebox.showinfo("Desanclar", "ConverCoor dejará de mostrarse sobre otras apps.")
+
+class ToolTip:
+    """Clase para mostrar tooltips al pasar el ratón sobre un widget"""
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip_window = None
+        widget.bind("<Enter>", self.show_tooltip)
+        widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event):
+        if self.tooltip_window:
+            return
+        x, y, _, _ = self.widget.bbox("insert")
+        x = self.widget.winfo_rootx() + x + 25
+        y = self.widget.winfo_rooty() + y + 20
+        
+        self.tooltip_window = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.geometry(f"+{x}+{y}")
+        label = tk.Label(tw, text=self.text, background="white", relief="solid", borderwidth=1, font=("Arial", 9))
+        label.pack(ipadx=5, ipady=2)
+
+    def hide_tooltip(self, event):
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
 
 class ThemedApp:
     def __init__(self, root):
@@ -500,6 +565,7 @@ class ThemedApp:
                 return data.get("theme", "superhero")  # Tema predeterminado
         return "superhero"  # Si no existe archivo, usa un tema predeterminado
 
+<<<<<<< HEAD
 class ToolTip:
     """Clase para mostrar tooltips al pasar el ratón sobre un widget"""
     def __init__(self, widget, text):
@@ -528,6 +594,8 @@ class ToolTip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
 
+=======
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
 def center_window(window, width=None, height=None):
     """Función para centrar cualquier ventana."""
     window.update_idletasks()  # Actualiza la geometría de la ventana
@@ -546,7 +614,11 @@ if __name__ == "__main__":
     app = CoordenadasApp(root)
 
     # Configurar tamaño inicial y centrar la ventana principal
+<<<<<<< HEAD
     root.geometry("500x730")  # Tamaño inicial de la ventana principal
+=======
+    root.geometry("550x800")  # Tamaño inicial de la ventana principal
+>>>>>>> 6c923b454f759d26b15a6d33a24ddeba4ca9bc56
     center_window(root)  # Centrar la ventana principal
 
     root.mainloop()
