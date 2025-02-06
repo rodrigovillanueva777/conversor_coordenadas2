@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Placemark>
+    <name>Coordenadas Convertidas</name>
+    <Point>
+      <coordinates>-56.9998,-24.916,0</coordinates>
+    </Point>
+  </Placemark>
+</kml>
